@@ -14,14 +14,8 @@ Authenticate gfuse and mount bucket
 ```
 gcsfuse bc-scseq-data "$HOME/mybucket"
 ```
-Install ftp
+use wget to get files from E-MTAB-6653. Nohup and '&' is to run in the background after closing the chell. It helps to use -nd just to get files and not the massive chain of directories. -nc for 'no-clobber' to not re-download files.
 
 ```
-sudo apt-get install ftp
-```
-
-Use the handy ftp script from ArrayExpress, here we're using E-MTAB-6653. 
-
-```
-sh download.sh &
+nohup bash -c 'wget -nd -nc "ftp://ftp.ebi.ac.uk/biostudies/fire/E-MTAB-/653/E-MTAB-6653/Files/*"' &
 ```
