@@ -14,8 +14,13 @@ Authenticate gfuse and mount bucket
 ```
 gcsfuse bc-scseq-data "$HOME/mybucket"
 ```
-use wget to get files from E-MTAB-6653. Nohup and '&' is to run in the background after closing the chell. It helps to use -nd just to get files and not the massive chain of directories. -nc for 'no-clobber' to not re-download files.
+Use wget to get files from E-MTAB-6653. Nohup and '&' is to run in the background after closing the chell. It helps to use -nd just to get files and not the massive chain of directories. -nc for 'no-clobber' to not re-download files.
 
 ```
 nohup bash -c 'wget -nd -nc "ftp://ftp.ebi.ac.uk/biostudies/fire/E-MTAB-/653/E-MTAB-6653/Files/*"' &
+```
+In order to get the data into terra, we need to create a workspace, note the bucket name, change permissions on the source account to access the buckets and copy the data into the local bucket.Im using rsync here to conviently move data around and have a copy of everything.
+
+```
+gcloud storage rsync --no-clobber gs://bc-scseq-data gs://fc-970a7650-2cd9-4d45-bed4-0580965a6184/sc-data
 ```
