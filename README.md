@@ -14,7 +14,7 @@ Authenticate gfuse and mount bucket
 ```
 gcsfuse bc-scseq-data "$HOME/mybucket"
 ```
-Use wget to get files from E-MTAB-6653. Nohup and '&' is to run in the background after closing the chell. It helps to use -nd just to get files and not the massive chain of directories. -nc for 'no-clobber' to not re-download files.
+Use wget to get files from E-MTAB-6653. Nohup and '&' is to run in the background after closing the shell. It helps to use -nd just to get files and not the massive chain of directories. -nc for 'no-clobber' to not re-download files. Make sure you have permission to write to buckets or else this will just silently fail. [https://cloud.google.com/filestore/docs/copying-data](https://cloud.google.com/filestore/docs/copying-data)
 
 ```
 nohup bash -c 'wget -nd -nc "ftp://ftp.ebi.ac.uk/biostudies/fire/E-MTAB-/653/E-MTAB-6653/Files/*"' &
