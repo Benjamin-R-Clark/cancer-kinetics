@@ -24,3 +24,9 @@ In order to get the data into terra, we need to create a workspace, note the buc
 ```
 gcloud storage rsync --no-clobber gs://bc-scseq-data gs://fc-970a7650-2cd9-4d45-bed4-0580965a6184/sc-data
 ```
+Now we need to set up STAR-SOLO to run in terra. The workflow uses a sample file as such: 
+
+
+|     Sample    |    Reference  |                        Location                         |  Assay  |
+| ------------- |:-------------:| -------------------------------------------------------:| -------:|
+| scrBT1429m    | GRCh38-2020-A | gs://fc-970a7650-2cd9-4d45-bed4-0580965a6184/sc-data/s0 | tenX_5p |
