@@ -1,0 +1,5 @@
+FASTQC:
+  fastqc: 0.12.1
+Workflow:
+    nf-core/scrnaseq: v2.7.1-g4171377
+    Nextflow: 24.10.2

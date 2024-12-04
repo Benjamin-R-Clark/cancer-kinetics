@@ -1,0 +1,12 @@
+sample,fastq_1,fastq_2,expected_cells
+BT1375,gs://bc-scseq-data/fastqs/BT1375_S5_L004_R1_001.fastq.gz,gs://bc-scseq-data/fastqs/BT1375_S5_L004_R2_001.fastq.gz,4000
+BT1376,gs://bc-scseq-data/fastqs/BT1376_S6_L005_R1_001.fastq.gz,gs://bc-scseq-data/fastqs/BT1376_S6_L005_R2_001.fastq.gz,4000
+BT1377,gs://bc-scseq-data/fastqs/BT1377_S7_L006_R1_001.fastq.gz,gs://bc-scseq-data/fastqs/BT1377_S7_L006_R2_001.fastq.gz,4000
+BT1378,gs://bc-scseq-data/fastqs/BT1378_S8_L007_R1_001.fastq.gz,gs://bc-scseq-data/fastqs/BT1378_S8_L007_R2_001.fastq.gz,4000
+scrBT1425,gs://bc-scseq-data/fastqs/scrBT1425_hg19_S11_L006_R1_001.fastq.gz,gs://bc-scseq-data/fastqs/scrBT1425_hg19_S11_L006_R2_001.fastq.gz,4000
+scrBT1426,gs://bc-scseq-data/fastqs/scrBT1426_hg19_S12_L006_R1_001.fastq.gz,gs://bc-scseq-data/fastqs/scrBT1426_hg19_S12_L006_R2_001.fastq.gz,4000
+scrBT1427,gs://bc-scseq-data/fastqs/scrBT1427_hg19_S13_L007_R1_001.fastq.gz,gs://bc-scseq-data/fastqs/scrBT1427_hg19_S13_L007_R2_001.fastq.gz,4000
+scrBT1428,gs://bc-scseq-data/fastqs/scrBT1428_hg19_S14_L007_R1_001.fastq.gz,gs://bc-scseq-data/fastqs/scrBT1428_hg19_S14_L007_R2_001.fastq.gz,4000
+scrBT1429m,gs://bc-scseq-data/fastqs/scrBT1429m_S0_L001_R1_001.fastq.gz,gs://bc-scseq-data/fastqs/scrBT1429m_S0_L001_R2_001.fastq.gz,4000
+scrBT1430m,gs://bc-scseq-data/fastqs/scrBT1430m_S0_L002_R1_001.fastq.gz,gs://bc-scseq-data/fastqs/scrBT1430m_S0_L002_R2_001.fastq.gz,4000
+scrBT1432m,gs://bc-scseq-data/fastqs/scrBT1432m_S0_L004_R1_001.fastq.gz,gs://bc-scseq-data/fastqs/scrBT1432m_S0_L004_R2_001.fastq.gz,4000

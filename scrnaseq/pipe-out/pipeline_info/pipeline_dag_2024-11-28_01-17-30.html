@@ -1,0 +1,159 @@
+<!--
+  ~ Copyright 2013-2024, Seqera Labs
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<html>
+<head>
+<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1, maximum-scale=1">
+</head>
+<body>
+<pre class="mermaid" style="text-align: center;">
+flowchart TB
+    subgraph " "
+    v2["channel.fromSamplesheet"]
+    v19["genome_fasta"]
+    v20["ch_gtf"]
+    v29["whitelist"]
+    v30["protocol"]
+    v31["star_feature"]
+    v32["other_10x_parameters"]
+    v53["txp2gene"]
+    v56["samplesheet"]
+    v67["Channel.of"]
+    v71["Channel.fromPath"]
+    v74["ch_workflow_summary"]
+    v80["Channel.of"]
+    v84["ch_methods_description"]
+    v91["replace_names"]
+    v92["sample_names"]
+    end
+    subgraph NFCORE_SCRNASEQ
+    subgraph SCRNASEQ
+    subgraph FASTQC_CHECK
+    v11([FASTQC])
+    end
+    v21([GTF_GENE_FILTER])
+    subgraph STARSOLO
+    v26([STAR_GENOMEGENERATE])
+    v33([STAR_ALIGN])
+    v3(( ))
+    v24(( ))
+    v27(( ))
+    v47(( ))
+    end
+    v50([EMPTYDROPS_CELL_CALLING])
+    subgraph MTX_CONVERSION
+    v54([MTX_TO_H5AD])
+    v57([CONCAT_H5AD])
+    v59([MTX_TO_SEURAT])
+    v55(( ))
+    end
+    v93([MULTIQC])
+    v12(( ))
+    v25(( ))
+    v88(( ))
+    v89(( ))
+    v90(( ))
+    v97(( ))
+    end
+    end
+    subgraph " "
+    v22[" "]
+    v34["star_result"]
+    v35[" "]
+    v36[" "]
+    v37[" "]
+    v38[" "]
+    v39[" "]
+    v40[" "]
+    v41["star_counts"]
+    v42[" "]
+    v58[" "]
+    v60[" "]
+    v63[" "]
+    v70["ch_collated_versions"]
+    v94[" "]
+    v95[" "]
+    v96[" "]
+    v98["multiqc_report"]
+    end
+    v2 --> v3
+    v3 --> v11
+    v11 --> v12
+    v19 --> v21
+    v19 --> v24
+    v20 --> v21
+    v21 --> v22
+    v21 --> v33
+    v21 --> v25
+    v24 --> v26
+    v25 --> v26
+    v26 --> v12
+    v26 --> v27
+    v29 --> v33
+    v30 --> v33
+    v31 --> v33
+    v32 --> v33
+    v3 --> v33
+    v27 --> v33
+    v33 --> v42
+    v33 --> v41
+    v33 --> v40
+    v33 --> v39
+    v33 --> v38
+    v33 --> v37
+    v33 --> v36
+    v33 --> v35
+    v33 --> v34
+    v33 --> v12
+    v33 --> v47
+    v47 --> v50
+    v50 --> v47
+    v53 --> v54
+    v27 --> v54
+    v47 --> v54
+    v54 --> v12
+    v54 --> v55
+    v56 --> v57
+    v55 --> v57
+    v57 --> v58
+    v47 --> v59
+    v59 --> v60
+    v59 --> v12
+    v12 --> v63
+    v67 --> v12
+    v12 --> v70
+    v71 --> v88
+    v74 --> v12
+    v80 --> v12
+    v84 --> v12
+    v91 --> v93
+    v92 --> v93
+    v12 --> v93
+    v88 --> v93
+    v89 --> v93
+    v90 --> v93
+    v93 --> v96
+    v93 --> v95
+    v93 --> v94
+    v93 --> v97
+    v97 --> v98
+
+</pre>
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({ startOnLoad: true, maxTextSize: Number.MAX_SAFE_INTEGER, maxEdges: Number.MAX_SAFE_INTEGER });
+</script>
+</body>
+</html>
