@@ -1,5 +1,9 @@
 # cancer-kinetics-
 
+Here we'll perform scRNAseq primary and secondary anaylsis on a lung tumor dataset from [https://www.ebi.ac.uk/biostudies/arrayexpress/studies/E-MTAB-6653?query=%20E-MTAB-6149%20](https://www.ebi.ac.uk/biostudies/arrayexpress/studies/E-MTAB-6653?query=%20E-MTAB-6149%20). Here we'll use google compute and terra.bio or nextflow.io to host and perform primary analysis. Secondary analysis will peformed locally using the Seurat package.
+
+## Set-Up
+
 In a google VM, create a bucket and mount it to a directory.
 ```
 export GCSFUSE_REPO=gcsfuse-`lsb_release -c -s`
@@ -20,7 +24,7 @@ Use wget to get files from E-MTAB-6653. Nohup and '&' is to run in the backgroun
 nohup bash -c 'wget -nd -nc "ftp://ftp.ebi.ac.uk/biostudies/fire/E-MTAB-/653/E-MTAB-6653/Files/*"' &
 ```
 
-## STAR-SOLO in Terra.bio
+### STAR-SOLO in Terra.bio
 In order to get the data into terra, we need to create a workspace, note the bucket name, change permissions on the source account to access the buckets and copy the data into the local bucket.Im using rsync here to conviently move data around and have a copy of everything.
 
 ```
@@ -61,7 +65,7 @@ bash pull_h5.sh
 ```
 
 
-## STAR-SOLO using NF-CORE
+### STAR-SOLO using NF-CORE
 
 Alternatively we can use the nfcore pipelines in conjuction with google gcp. This gives quite a bit more control and less of hassle with moving stuff to different buckets.
 
