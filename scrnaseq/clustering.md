@@ -904,7 +904,7 @@ DimPlot(seurat_integrated,
 
 ![](clustering_files/figure-markdown_github/unnamed-chunk-32-2.png)
 
-Using 0.4 makes sense here. Let’s check a cell phase:
+Using 0.1 makes sense here. Let’s check a cell phase:
 
 ``` r
 # Explore whether clusters segregate by cell cycle phase
