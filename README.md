@@ -123,6 +123,8 @@ nextflow run nf-core/scrnaseq  -profile docker -c nextflow.config  --outdir ./pi
 --aligner star
 ```
 
+If we look at the alignment metrics coming out of star-solo for a couple of samples, we see a good efficiency at above 80% [star-solo stats](https://github.com/Benjamin-R-Clark/cancer-kinetics/blob/main/scrnaseq/star-out_BT1375_Solo.out_Gene_Summary.csv).
+
 ## Post-Processing
 
 QC and secondary analysis will be performed in a Rmd and saved here in [clustering.md](https://github.com/Benjamin-R-Clark/cancer-kinetics/blob/main/scrnaseq/clustering.md).
