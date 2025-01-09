@@ -1,0 +1,455 @@
+---
+title: "lung-cancer-clustering"
+output:
+  md_document:
+    variant: markdown_github
+date: "2024-12-05"
+---
+
+```{r, results='hide'}
+library(Seurat)
+library(patchwork)
+library(ggplot2)
+library(dplyr)
+library(RCurl)
+library(AnnotationHub)
+set.seed(30)
+```
+Adding metadata
+```{r}
+#filepaths <- names(assays)
+meta <- read.delim("samplesheet.tsv")
+
+#making a better metadata table
+get.par <- function(string){return(substring(string,1,12))}
+get.tumor <- function(string){return(substring(string,14))}
+
+metaf <- meta %>% mutate("participant" = get.par(sample_id)) %>% mutate("tumor.type" = get.tumor(sample_id))
+
+```
+
+
+```{r}
+assays <- list()
+
+for(type in metaf$tumor.type){
+  files <- metaf %>% dplyr::filter(tumor.type == type) %>% dplyr::select(filename)
+  for(file in files[[1]]){
+    data <- Read10X_h5(file)
+    seurat.obj <- CreateSeuratObject(counts = data,
+                                     min.features = 200,
+                                     project = file)
+    assign(file, seurat.obj)
+  }
+  assays[[type]] <- seurat.obj
+}
+
+merged.obj <- merge(x = assays$normal,
+                      y = c(assays$edge, assays$middle, assays$core), 
+                      add.cell.id = c("ctrl", "edge", "middle", "core"))
+
+merged.obj <- JoinLayers(merged.obj)
+
+head(merged.obj@meta.data)
+#for(name in list.files("./counts", full.names = T)){
+#  if(grepl("filtered.h5", name)){
+#    assays[name] <- CreateSeuratObject(counts = #Read10X_h5(name), project = name)
+    #}
+#}
+
+```
+```{r}
+#novelty score
+# Add number of genes per UMI for each cell to metadata
+merged.obj$log10GenesPerUMI <- log10(merged.obj$nFeature_RNA) / log10(merged.obj$nCount_RNA)
+
+#add mitoRatio
+
+# Compute percent mito ratio
+merged.obj$mitoRatio <- PercentageFeatureSet(object = merged.obj, pattern = "^MT-")
+merged.obj$mitoRatio <- merged.obj@meta.data$mitoRatio / 100
+```
+
+```{r}
+#create meta datatable
+metadata <- merged.obj@meta.data
+metadata$cells <- rownames(metadata)
+
+#sample column 
+metadata <- metadata  %>% mutate(sample = case_when(
+                                      grepl("core", cells) ~ "core",
+                                      grepl("edge", cells) ~ "edge",
+                                      grepl("ctrl", cells) ~ "ctrl",
+                                      grepl("middle", cells) ~ "middle")) %>% 
+                        dplyr::rename(nUMI = nCount_RNA, nGene = nFeature_RNA)
+
+head(metadata)
+```
+
+It looks like we're getting far fewer cells than expected (4K, really?)
+```{r}
+metadata %>% 
+  	ggplot(aes(x=sample, fill=sample)) + 
+  	geom_bar() +
+  	theme_classic() +
+  	theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  	theme(plot.title = element_text(hjust=0.5, face="bold")) +
+  	ggtitle("NCells")
+```
+
+Looks alright, for some reason ctrl is much different. Sampling issues or celltype differences?
+```{r}
+#plotting
+metadata %>% ggplot(aes(colour = sample, x=nUMI, fill = sample)) + 
+  geom_density(alpha=0.4) +
+  scale_x_log10() + 
+  theme_classic() + 
+  geom_vline(xintercept = 400)
+```
+We have a pretty low gene detection rate at a mean of ~300. Ctl sample seems much more consistent which may indicate a lesser diversity of cell types.
+```{r}
+metadata %>% ggplot(aes(colour = sample, x=nGene, fill = sample)) + 
+  geom_density(alpha=0.4) +
+  scale_x_log10() + 
+  theme_classic()
+
+mean(metadata$nGene)
+median(metadata$nGene)
+```
+Evaluating complexity (nGene/nUMI). Some really interesting stuff here, it looks like the edge sample is bimodal, which might actually represent the spatial stratification of the sample. The control has a bump at 0.9 which is indicative of some heterogeneity. I feel like 0.8 might be too harsh a cut-off and we'd lose something interesting in the edge sample. 
+
+
+```{r}
+metadata %>% ggplot(aes(colour = sample, x=log10GenesPerUMI, fill = sample)) + 
+  geom_density(alpha=0.4) +
+  theme_classic() +
+  geom_vline(xintercept = 0.76)
+  
+```
+No mitochondrial 
+```{r warning=FALSE}
+metadata %>% ggplot(aes(colour = sample, x=mitoRatio, fill = sample)) + 
+  geom_density(alpha=0.4) +
+  theme_classic() +
+  scale_x_log10() +
+  geom_vline(xintercept = 0.2)
+  
+```
+
+Mitochondrial expression seems to prevalent in edge tumor cells that are highly expressive. Since mito expression is very broad we probably shouldn't filter cells on this basis.
+```{r message=FALSE, warning=FALSE}
+metadata %>% 
+  	ggplot(aes(x=nUMI, y=nGene, color=mitoRatio)) + 
+  	geom_point(size = 0.9) + 
+	scale_colour_gradient(low = "gray90", high = "black") +
+  	stat_smooth(method=lm) +
+  	scale_x_log10() + 
+  	scale_y_log10() + 
+  	theme_classic() +
+  	geom_vline(xintercept = 500) +
+  	geom_hline(yintercept = 250) +
+  	facet_wrap(~sample) 
+```
+
+## Filtering
+```{r}
+#first lets throw the metadata on the object
+merged.obj@meta.data <- metadata
+
+filtered.seurat <- subset(x = merged.obj, 
+                          subset= (nUMI >= 400) & 
+                          (nGene >= 200) & 
+                          (log10GenesPerUMI >= 0.76))
+
+```
+
+```{r}
+# Extract counts
+counts <- GetAssayData(object = filtered.seurat, layer = "counts")
+nonzero <- counts > 0
+
+
+# Sums all TRUE values and returns TRUE if more than 10 TRUE values per gene
+keep_genes <- Matrix::rowSums(nonzero) >= 10
+
+# Only keeping those genes expressed in more than 10 cells
+filtered_counts <- counts[keep_genes, ]
+filtered.seurat <- CreateSeuratObject(filtered_counts, meta.data = filtered.seurat@meta.data)
+```
+
+Checking after filtering
+```{r message=FALSE, warning=FALSE}
+filtered.seurat@meta.data %>% 
+  	ggplot(aes(x=nUMI, y=nGene, color=mitoRatio)) + 
+  	geom_point(size = 0.9) + 
+	scale_colour_gradient(low = "gray90", high = "black") +
+  	stat_smooth(method=lm) +
+  	scale_x_log10() + 
+  	scale_y_log10() + 
+  	theme_classic() +
+  	geom_vline(xintercept = 400) +
+  	geom_hline(yintercept = 200) +
+  	facet_wrap(~sample) 
+  
+```
+
+
+```{r}
+filtered.seurat@meta.data %>% 
+  	ggplot(aes(x=sample, fill=sample)) + 
+  	geom_bar() +
+  	theme_classic() +
+  	theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  	theme(plot.title = element_text(hjust=0.5, face="bold")) +
+  	ggtitle("NCells")
+```
+
+## Cell cycle analysis
+
+```{r}
+
+cc_file <- getURL("https://raw.githubusercontent.com/hbc/tinyatlas/master/cell_cycle/Homo_sapiens.csv") 
+cell_cycle_genes <- read.csv(text = cc_file)
+```
+
+Getting annotations 
+```{r}
+ah <- AnnotationHub()
+ahDb <- query(ah, 
+              pattern = c("Homo sapiens", "EnsDb"), 
+              ignore.case = TRUE)
+id <- ahDb %>%
+        mcols() %>%
+        rownames() %>%
+        tail(n = 1)
+
+edb <- ah[[id]]
+
+annotations <- genes(edb, 
+                     return.type = "data.frame")
+
+annotations <- annotations %>%
+        dplyr::select(gene_id, gene_name, seq_name, gene_biotype, description)
+```
+
+Getting gene IDs map to cell cycle ensembl IDs
+```{r}
+# Get gene names for Ensembl IDs for each gene
+cell_cycle_markers <- dplyr::left_join(cell_cycle_genes, annotations, by = c("geneID" = "gene_id"))
+
+# Acquire the S phase genes
+s_genes <- cell_cycle_markers %>%
+        dplyr::filter(phase == "S") %>%
+        pull("gene_name")
+        
+# Acquire the G2M phase genes        
+g2m_genes <- cell_cycle_markers %>%
+        dplyr::filter(phase == "G2/M") %>%
+        pull("gene_name")
+```
+
+Cell cycle scoring
+```{r}
+seurat.phase <- NormalizeData(filtered.seurat)
+seurat.phase <- CellCycleScoring(seurat.phase, 
+                                 g2m.features = g2m_genes, 
+                                 s.features = s_genes)
+head(seurat.phase@meta.data)  
+```
+```{r}
+# Identify the most variable genes
+seurat.phase <- FindVariableFeatures(seurat.phase, 
+                     selection.method = "vst",
+                     nfeatures = 2000, 
+                     verbose = FALSE)
+		     
+# Scale the counts
+seurat.phase <- ScaleData(seurat.phase)
+```
+
+```{r}
+# Identify the 15 most highly variable genes
+ranked_variable_genes <- VariableFeatures(seurat.phase)
+top_genes <- ranked_variable_genes[1:15]
+
+# Plot the average expression and variance of these genes
+# With labels to indicate which genes are in the top 15
+p <- VariableFeaturePlot(seurat.phase)
+LabelPoints(plot = p, points = top_genes, repel = TRUE)
+```
+```{r}
+# Perform PCA
+seurat.phase <- RunPCA(seurat.phase)
+
+# Plot the PCA colored by cell cycle phase
+DimPlot(seurat.phase,
+        reduction = "pca",
+        group.by= "Phase",
+        split.by = "Phase")
+
+
+DimPlot(seurat.phase,
+        reduction = "pca",
+        group.by= "Phase")
+```
+There is some variation with G2M and G1 in both PCs. However, since this is a stratified tumor dataset, we should expect some differentiation. There won't be any need to regress out phase information.
+
+
+
+Splitting data for SCT normalization. Here we are just regressing gene length
+```{r message=FALSE, warning=FALSE, results='hide'}
+split.seurat <- SplitObject(seurat.phase, split.by = "sample")
+splits.assays <- sapply(split.seurat, SCTransform, vst.flavor = "v2")
+
+```
+
+```{r}
+splits.assays$ctrl@assays
+splits.assays$core@assays
+```
+## Clustering
+
+SMARCB1, a known tumor suppressor is a good indicator we're on the right track for one of the most variable genes.
+
+```{r}
+seurat.phase <- RunUMAP(seurat.phase, dims = 1:40)
+UMAPPlot(seurat.phase)
+```
+We can see some tight clustering for specific subgroups emerging, however its difficult to see the differentiation. Let's try adjusting the parameters.
+```{r}
+seurat.phase <- RunUMAP(seurat.phase, dims = 1:40, min.dist = 0.80, n.neighbors = 30)
+UMAPPlot(seurat.phase)
+```
+Here we can see the differences in the main cluster. "Edge" and "CTRL" samples seem to occupy a similar space at the lower end. We can also see clusters that are exclusive to the tumor samples. This dataset looks like it could benefit from integration.  
+
+```{r}
+## Don't run this during class
+# Select the most variable features to use for integration
+integ_features <- SelectIntegrationFeatures(object.list = splits.assays, 
+                                            nfeatures = 2000)
+## Don't run this during class
+# Prepare the SCT list object for integration
+splits.assays <- PrepSCTIntegration(object.list = splits.assays, 
+                                   anchor.features = integ_features)
+
+## Don't run this during class
+# Find best buddies - can take a while to run
+integ_anchors <- FindIntegrationAnchors(object.list = splits.assays, 
+                                        normalization.method = "SCT", 
+                                        anchor.features = integ_features)
+
+## Don't run this during class
+# Integrate across conditions
+seurat_integrated <- IntegrateData(anchorset = integ_anchors, 
+                                   normalization.method = "SCT")
+```
+
+```{r}
+# Run PCA
+seurat_integrated <- RunPCA(object = seurat_integrated)
+
+# Plot PCA
+PCAPlot(seurat_integrated,
+        split.by = "sample")  
+```
+
+```{r}
+seurat_integrated <- RunUMAP(seurat_integrated, dims = 1:40, min.dist = 0.75, n.neighbors = 30)
+UMAPPlot(seurat_integrated)   
+```
+Now we'll check the clustering.
+```{r}
+seurat_integrated <- FindNeighbors(object = seurat_integrated, 
+                                dims = 1:40)
+```
+
+```{r}
+# Determine the clusters for various resolutions                                
+seurat_integrated <- FindClusters(object = seurat_integrated,
+                               resolution = c(0.05,0.1,0.2, 0.4))
+```
+
+```{r}
+
+Idents(object = seurat_integrated) <- "integrated_snn_res.0.05"
+DimPlot(seurat_integrated,
+        reduction = "umap",
+        label = TRUE,
+        label.size = 6)
+
+Idents(object = seurat_integrated) <- "integrated_snn_res.0.1"
+DimPlot(seurat_integrated,
+        reduction = "umap",
+        label = TRUE,
+        label.size = 6)
+
+
+```
+
+Using 0.4 makes sense here. Let's check a cell phase:
+
+```{r}
+# Explore whether clusters segregate by cell cycle phase
+DimPlot(seurat_integrated,
+        label = TRUE, 
+        split.by = "Phase")  + NoLegend()
+```
+Each of our clusters appear to be present in every cell state. In fact, G2M seems to appear more segregated at lower cell counts.
+
+Checking for uninteresting features.
+```{r}
+# Determine metrics to plot present in seurat_integrated@meta.data
+metrics <-  c("nUMI", "nGene", "S.Score", "G2M.Score", "mitoRatio")
+
+FeaturePlot(seurat_integrated, 
+            reduction = "umap", 
+            features = metrics,
+            pt.size = 0.4, 
+            order = TRUE,
+            min.cutoff = 'q10',
+            label = TRUE)
+```
+The number of genes might be a defining factor for clusters to the right. 
+
+Next we'll check cluster identity manually.
+
+```{r}
+FeaturePlot(seurat_integrated, 
+            reduction = "umap", 
+            features = c("SMARCB1"), 
+            order = TRUE,
+            min.cutoff = 'q10', 
+            label = TRUE)
+```
+
+```{r}
+FeaturePlot(seurat_integrated, 
+            reduction = "umap", 
+            features = c("CD14", "LYZ"), 
+            order = TRUE, 
+            label = TRUE)
+```
+Finding cluster gene identities 
+```{r}
+DefaultAssay(seurat_integrated) <- "RNA"
+
+# Create function to get conserved markers for any given cluster
+get_conserved <- function(cluster, seurat){
+  FindConservedMarkers(seurat,
+                       ident.1 = cluster,
+                       grouping.var = "sample",
+                       only.pos = TRUE)
+}
+seurat_integrated.joined <- JoinLayers(seurat_integrated)
+clusters <-  sapply(c(0:7),get_conserved, seurat = seurat_integrated.joined)
+# Iterate function across desired clusters
+#conserved_markers <- purrr::map2_dfr(c(4,0,6,2), get_conserved, seurat = seurat_integrated)
+```
+
+Identifying Cell Type Clusters. Here are some intermediate results that I've found via looking up gene marker identities on PangaoDB. Next steps would be subclustering and comparing with a non-integrated dataset.
+```{r}
+cluster.df.anno <- DataFrame(Cluster = c(0:7), 
+                ID = c("Myeloid","Alveolar","Plasma: T Cells?","?","Fibroblasts", "Plasma", "T Cells", "?"), 
+                Gene.Markers = c("LYZ, C1QA","PGR, SFTPB","CD3G, PRDM1","?","SLIT2, CRISPLD2","JCHAIN, SMARCB1, IGKC","SIGLEC6, FOXP1","?"))
+cluster.df.anno
+```

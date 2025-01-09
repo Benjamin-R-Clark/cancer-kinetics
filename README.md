@@ -119,3 +119,6 @@ nextflow run nf-core/scrnaseq  -profile docker -c nextflow.config  --outdir ./pi
 --aligner star
 ```
 
+## Post-Processing
+
+QC and secondary analysis will be performed in a Rmd and saved here in [clustering.md](https://github.com/Benjamin-R-Clark/cancer-kinetics/scrnaseq/clustering.md).

@@ -1,0 +1,12 @@
+sample_id	filename
+participant6-core	counts/scrBT1432_raw.h5
+participant6-edge	counts/scrBT1430_raw.h5
+participant6-normal	counts/scrBT1429_raw.h5
+participant7-core	counts/BT1375_raw.h5
+participant7-edge	counts/BT1377_raw.h5
+participant7-middle	counts/BT1376_raw.h5
+participant7-normal	counts/BT1378_raw.h5
+participant8-core	counts/scrBT1425_raw.h5
+participant8-edge	counts/scrBT1427_raw.h5
+participant8-middle	counts/scrBT1426_raw.h5
+participant8-normal	counts/scrBT1428_raw.h5
